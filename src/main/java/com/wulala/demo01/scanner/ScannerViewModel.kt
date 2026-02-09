@@ -1,6 +1,7 @@
 package com.wulala.demo01.scanner
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,8 +43,10 @@ class ScannerViewModel @Inject constructor(
     private val centralManager: CentralManager,
     // We're not using ViewModelScope. For test purposes it's better to create a custom Scope,
     // also connected to the ViewModel lifecycle, but which can be replaced in tests.
-    private val scope: CoroutineScope,
+    // private val scope: CoroutineScope,
 ) : ViewModel() {
+
+    private val scope = viewModelScope
     val state = centralManager.state
 
     private val _connected = MutableStateFlow(false)

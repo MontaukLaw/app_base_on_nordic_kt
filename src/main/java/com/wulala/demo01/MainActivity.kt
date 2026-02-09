@@ -12,33 +12,43 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.wulala.demo01.mainpage.MainScreen
+import com.wulala.demo01.routes.Routes
 import com.wulala.demo01.scanner.ScannerScreen
 import com.wulala.demo01.ui.theme.KotlinBLELibraryTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             KotlinBLELibraryTheme {
-                val rootNav = rememberNavController()
+                val navController = rememberNavController()
 
                 NavHost(
-                    navController = rootNav,
+                    navController = navController,
                     startDestination = Routes.SCAN
                 ) {
+
+                    // 1️⃣ 扫描页（入口）
                     composable(Routes.SCAN) {
                         ScannerScreen(
                             onConnected = {
-                                rootNav.navigate(Routes.MAIN) {
-                                    popUpTo(Routes.SCAN) { inclusive = true }
+                                navController.navigate(Routes.MAIN) {
+                                    // 🔥 关键：把 Scan 从返回栈里清掉
+                                    popUpTo(Routes.SCAN) {
+                                        inclusive = true
+                                    }
                                 }
                             }
                         )
                     }
 
+                    // 2️⃣ 主页面（BottomBar）
                     composable(Routes.MAIN) {
                         MainScreen()
                     }

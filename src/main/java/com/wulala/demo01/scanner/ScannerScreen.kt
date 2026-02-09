@@ -20,6 +20,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,11 +49,22 @@ fun hasBlePermissions(context: Context, permissions: Array<String>): Boolean {
 }
 
 @Composable
-fun ScannerScreen() {
-    val vm = hiltViewModel<ScannerViewModel>()
+fun ScannerScreen(
+    onConnected: () -> Unit,
+    vm: ScannerViewModel = hiltViewModel()
+) {
     val state by vm.state.collectAsStateWithLifecycle()
     val devices by vm.peripherals.collectAsStateWithLifecycle()
     val isScanning by vm.isScanning.collectAsStateWithLifecycle()
+
+    val connected by vm.connected.collectAsStateWithLifecycle()
+
+    // 连接状态变化 → 触发跳转
+    LaunchedEffect(connected) {
+        if (connected) {
+            onConnected()
+        }
+    }
 
     // 获取当前上下文并将其转换为Activity，以便在需要时请求权限。
     val context = LocalContext.current
