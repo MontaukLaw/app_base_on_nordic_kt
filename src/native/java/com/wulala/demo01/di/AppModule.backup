@@ -1,0 +1,63 @@
+package com.wulala.demo01.di
+
+
+import android.content.Context
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import no.nordicsemi.kotlin.ble.advertiser.android.BluetoothLeAdvertiser
+import no.nordicsemi.kotlin.ble.advertiser.android.native
+import no.nordicsemi.kotlin.ble.client.android.CentralManager
+import no.nordicsemi.kotlin.ble.client.android.native
+import no.nordicsemi.kotlin.ble.environment.android.NativeAndroidEnvironment
+import javax.inject.Qualifier
+import javax.inject.Singleton
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class AppScope
+
+@Module
+@InstallIn(SingletonComponent::class)
+object AppModule {
+
+    @Provides
+    @Singleton
+    fun provideNativeAndroidEnvironment(
+        @ApplicationContext context: Context
+    ): NativeAndroidEnvironment {
+        // Nordic 的 Environment，通常需要 applicationContext
+        return NativeAndroidEnvironment(context)
+    }
+
+    @Provides
+    @Singleton
+    @AppScope
+    fun provideAppCoroutineScope(): CoroutineScope {
+        // App 级 scope：不会因为某个 ViewModel 清理而 cancel
+        // 你也可以改 Dispatchers.IO，看你 BLE 内部实现习惯
+        return CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    }
+
+    @Provides
+    @Singleton
+    fun provideCentralManager(
+        environment: NativeAndroidEnvironment,
+        @AppScope scope: CoroutineScope
+    ): CentralManager {
+        return CentralManager.native(environment, scope)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAdvertiser(
+        environment: NativeAndroidEnvironment
+    ): BluetoothLeAdvertiser {
+        return BluetoothLeAdvertiser.native(environment)
+    }
+}

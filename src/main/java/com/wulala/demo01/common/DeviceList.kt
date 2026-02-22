@@ -106,6 +106,7 @@ fun DeviceItem(
                     val services by device.services().collectAsStateWithLifecycle()
                     val bondState by device.bondState.collectAsStateWithLifecycle()
                     DeviceServices(services = services)
+                    /*
                     Spacer(modifier = Modifier.height(8.dp))
                     DeviceActions(
                         isBonded = bondState == BondState.BONDED,
@@ -113,6 +114,7 @@ fun DeviceItem(
                         onRemoveBondRequested = onRemoveBondRequested,
                         onClearCacheRequested = onClearCacheRequested,
                     )
+                    */
                 }
             }
         }

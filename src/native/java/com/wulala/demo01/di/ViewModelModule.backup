@@ -15,6 +15,8 @@ import no.nordicsemi.kotlin.ble.client.android.CentralManager
 import no.nordicsemi.kotlin.ble.client.android.native
 import no.nordicsemi.kotlin.ble.environment.android.NativeAndroidEnvironment
 
+// 「这个模块里提供的所有东西，只在 ViewModel 生命周期内有效」
+// 每个 ViewModel 一套
 @Module
 @InstallIn(ViewModelComponent::class)
 object ViewModelModule {

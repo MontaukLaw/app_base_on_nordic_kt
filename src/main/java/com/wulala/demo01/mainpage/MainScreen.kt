@@ -17,7 +17,7 @@ import androidx.navigation.compose.rememberNavController
 import com.wulala.demo01.routes.Routes
 import com.wulala.demo01.scanner.SettingsScreen
 import com.wulala.demo01.screens.HeatmapScreen
-import com.wulala.demo01.screens.RealtimeScreen
+import com.wulala.demo01.screens.realtime.RealtimeScreen
 
 @Composable
 fun MainScreen() {

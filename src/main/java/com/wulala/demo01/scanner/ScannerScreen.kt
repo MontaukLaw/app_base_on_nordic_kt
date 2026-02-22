@@ -21,6 +21,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,13 +52,16 @@ fun hasBlePermissions(context: Context, permissions: Array<String>): Boolean {
 @Composable
 fun ScannerScreen(
     onConnected: () -> Unit,
-    vm: ScannerViewModel = hiltViewModel()
+    viewModel: ScannerViewModel = hiltViewModel(),
+    peripheral: Peripheral
 ) {
-    val state by vm.state.collectAsStateWithLifecycle()
-    val devices by vm.peripherals.collectAsStateWithLifecycle()
-    val isScanning by vm.isScanning.collectAsStateWithLifecycle()
 
-    val connected by vm.connected.collectAsStateWithLifecycle()
+    val connected by viewModel.connectedPeripheral.collectAsState()
+    val isConnected = connected == peripheral
+
+    // val state by vm.state.collectAsStateWithLifecycle()
+    // val devices by vm.peripherals.collectAsStateWithLifecycle()
+    // val isScanning by vm.isScanning.collectAsStateWithLifecycle()
 
     // 连接状态变化 → 触发跳转
     LaunchedEffect(connected) {
@@ -91,10 +95,14 @@ fun ScannerScreen(
                 vm.onScanRequested()
             }
         }
+
+    // layout
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp)
+            .padding(vertical = 24.dp),
+
         horizontalAlignment = CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
