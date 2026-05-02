@@ -2,6 +2,7 @@ package com.wulala.demo01.ui.theme
 
 import android.app.Activity
 import android.os.Build
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
@@ -12,13 +13,17 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.*
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
     secondary = PurpleGrey80,
-    tertiary = Pink80
+    tertiary = Pink80,
+    background = Color(0xFF121212),
+    onBackground = Color(0xFFE0E0E0),
+    onSurface = Color(0xFFE0E0E0)
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -36,6 +41,23 @@ private val LightColorScheme = lightColorScheme(
     onSurface = Color(0xFF1C1B1F),
     */
 )
+
+private val DarkColors = darkColorScheme(
+    primary = Color(0xFF3B82F6),
+    secondary = Color(0xFF00E5FF),
+    background = Color(0xFF121212),
+    surface = Color(0xFF1E1E1E),
+    onBackground = Color(0xFFE0E0E0),
+    onSurface = Color(0xFFE0E0E0)
+)
+
+@Composable
+fun ScopeTheme(content: @Composable () -> Unit) {
+    MaterialTheme(
+        colorScheme = DarkColors,
+        content = content
+    )
+}
 
 @Composable
 fun KotlinBLELibraryTheme(
@@ -56,16 +78,14 @@ fun KotlinBLELibraryTheme(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 16.dp),
+            .background(colorScheme.background),  // 这里定义了背景颜色
         verticalArrangement = Arrangement.spacedBy(24.dp),
-        horizontalAlignment = Alignment.Start
+        horizontalAlignment = Alignment.Start,
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography,
-            content = content
+            content = content,
         )
-        // content()
     }
-
 }

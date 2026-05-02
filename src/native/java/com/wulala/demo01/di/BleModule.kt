@@ -14,23 +14,22 @@ import javax.inject.Singleton
 
 // 👉 整个 App 只有一个 CentralManager
 // 👉 所有 ViewModel / Repository 共用
-@Module
-@InstallIn(SingletonComponent::class)
-object BleModule {
+@Module // 依赖的配方集合
+@InstallIn(SingletonComponent::class)      // SingletonComponent 的意义是：给全 App 用的（Application 级别
+object BleModule {                                 // object是常见的kotlin单例对象
 
-    @Provides
-    @Singleton
-    fun provideAppScope(): CoroutineScope {
+    @Provides   // “这是一个工厂方法，Hilt 用它来创建对象”。
+    @Singleton  // “在该容器里只创建一次，并缓存复用”。
+    fun provideAppScope(): CoroutineScope {  // 函数签名：返回一个 CoroutineScope
         return CoroutineScope(SupervisorJob() + Dispatchers.Default)
     }
 
-    @Provides
-    @Singleton
+    @Provides  // 这是创建 CentralManager 的方法
+    @Singleton // CentralManager 全 App 只创建一次（同一个实例）
     fun provideCentralManager(
-        environment: NativeAndroidEnvironment,
-        scope: CoroutineScope
-    ): CentralManager {
-        return CentralManager.native(environment, scope)
+        environment: NativeAndroidEnvironment,  // 先想办法拿到 NativeAndroidEnvironment, 这个由EnvironmentModule提供
+        scope: CoroutineScope                   // 再想办法拿到 CoroutineScope
+    ): CentralManager {                         // 然后调用这个方法，把它们传进来，得到 CentralManager
+        return CentralManager.native(environment, scope)   // CentralManager的工厂方法生成
     }
-
 }

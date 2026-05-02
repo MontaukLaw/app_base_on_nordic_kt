@@ -2,7 +2,6 @@ package com.wulala.demo01.data
 
 import java.util.UUID
 
-
 val SYC_UUID_SERVICE_UUID = "0000FCC0-0000-1000-8000-00805f9b34fb"
 
 val SYC_UUID_SERVICE = UUID.fromString(SYC_UUID_SERVICE_UUID)

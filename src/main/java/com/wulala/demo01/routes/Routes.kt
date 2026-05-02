@@ -1,10 +1,17 @@
 package com.wulala.demo01.routes
 
-object Routes {
-    const val SCAN = "scan"
-    const val MAIN = "main"
+import androidx.navigation.NavController
 
-    const val REALTIME = "main/realtime"
-    const val HEATMAP = "main/heatmap"
-    const val SETTINGS = "main/settings"
+object Routes {
+    const val SCANNER = "scanner"
+    const val MAIN = "main"
+    const val MAIN_WITH_ID = "main/{id}"
+}
+
+fun NavController.navigateToMain(id: String) {
+    navigate("main/$id") {
+        // 防止用户返回又回到“已连接的 Scanner”
+        popUpTo(Routes.SCANNER) { inclusive = true }
+        launchSingleTop = true
+    }
 }

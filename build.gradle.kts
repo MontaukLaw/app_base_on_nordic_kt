@@ -5,7 +5,10 @@ plugins {
 
 android {
     namespace = "com.wulala.demo01"
+
     defaultConfig {
+        minSdk = 23
+        targetSdk = 35
         applicationId = "com.wulala.demo01"
     }
     androidResources {
@@ -37,5 +40,6 @@ dependencies {
 
     // Binder SLF4J -> Timber
     implementation(libs.slf4j.timber)
+    implementation(libs.play.services.maps)
     debugImplementation(libs.leakcanary)
 }

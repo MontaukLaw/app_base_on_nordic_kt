@@ -1,46 +1,31 @@
 package com.wulala.demo01.scanner
 
+import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.*
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wulala.demo01.common.DeviceList
+import com.wulala.demo01.common.ScanDevice
 import com.wulala.demo01.data.BlePermissionState
+import kotlinx.coroutines.flow.collectLatest
 import no.nordicsemi.kotlin.ble.client.android.Peripheral
-import no.nordicsemi.kotlin.ble.client.android.preview.PreviewPeripheral
 import no.nordicsemi.kotlin.ble.core.ConnectionState
 
 fun hasBlePermissions(context: Context, permissions: Array<String>): Boolean {
@@ -49,95 +34,112 @@ fun hasBlePermissions(context: Context, permissions: Array<String>): Boolean {
     }
 }
 
+const val OUR_DEVICE_NAME = "SYC"
+
+fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
 @Composable
 fun ScannerScreen(
-    onConnected: () -> Unit,
-    viewModel: ScannerViewModel = hiltViewModel(),
-    peripheral: Peripheral
+    onConnected: () -> Unit, vm: ScannerViewModel = hiltViewModel()
 ) {
+    val scanResults by vm.scanResults.collectAsStateWithLifecycle()
+    val isScanning by vm.isScanning.collectAsStateWithLifecycle()
+    val selectedPeripheral by vm.peripheral.collectAsStateWithLifecycle()
 
-    val connected by viewModel.connectedPeripheral.collectAsState()
-    val isConnected = connected == peripheral
+    val context = LocalContext.current
+    val activity = remember(context) { context.findActivity() }
+    val permissions = remember { requiredBlePermissions() }
 
-    // val state by vm.state.collectAsStateWithLifecycle()
-    // val devices by vm.peripherals.collectAsStateWithLifecycle()
-    // val isScanning by vm.isScanning.collectAsStateWithLifecycle()
+    var navigated by rememberSaveable { mutableStateOf(false) }
 
-    // 连接状态变化 → 触发跳转
-    LaunchedEffect(connected) {
-        if (connected) {
+    val connectionState by vm.connectionState.collectAsStateWithLifecycle()
+
+    // 记录权限是否已授予（用系统查询作为“真相源”）
+    var hasPermission by remember {
+        mutableStateOf(hasBlePermissions(context, permissions))
+    }
+
+    // 权限 OK 就自动扫（也可只在第一次扫，看你要不要“从设置回来自动扫”）
+    LaunchedEffect(hasPermission) {
+        if (hasPermission) vm.startScan(nameContains = OUR_DEVICE_NAME)
+    }
+
+    // Connected -> 导航一次
+    LaunchedEffect(connectionState) {
+        if (!navigated && connectionState is ConnectionState.Connected) {
+            navigated = true
             onConnected()
         }
     }
 
-    // 获取当前上下文并将其转换为Activity，以便在需要时请求权限。
-    val context = LocalContext.current
-    val activity = context as Activity
-    val permissions = requiredBlePermissions()
+    // 发起新连接时重置 gate
+    LaunchedEffect(selectedPeripheral?.identifier) {
+        navigated = false
+    }
 
     var permissionState by remember { mutableStateOf<BlePermissionState>(BlePermissionState.Denied) }
 
-    val permissionLauncher =
-        rememberLauncherForActivityResult(
-            ActivityResultContracts.RequestMultiplePermissions()
-        ) { result ->
-            val allGranted = result.values.all { it }
-            permissionState = when {
-                allGranted -> BlePermissionState.Granted
-                permissions.any {
-                    !ActivityCompat.shouldShowRequestPermissionRationale(activity, it)
-                } -> BlePermissionState.PermanentlyDenied
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
 
-                else -> BlePermissionState.Denied
-            }
+        // 1) 找出被拒绝的权限
+        val denied = permissions.filter { result[it] != true }
 
-            if (permissionState == BlePermissionState.Granted) {
-                vm.onScanRequested()
-            }
+        // 2) 判断“永久拒绝”（只对被拒绝的那几个权限判断）
+        val permanentlyDenied = activity != null && denied.any { perm ->
+            !ActivityCompat.shouldShowRequestPermissionRationale(activity, perm)
         }
 
-    // layout
+        // 3) 更新你的 permissionState
+        permissionState = when {
+            denied.isEmpty() -> BlePermissionState.Granted
+            permanentlyDenied -> BlePermissionState.PermanentlyDenied
+            else -> BlePermissionState.Denied
+        }
+
+        // 4) 如果已授权，就开始扫描
+        if (permissionState == BlePermissionState.Granted) {
+            vm.startScan(nameContains = OUR_DEVICE_NAME             )
+        }
+    }
+
+    // 页面离开：停止扫描
+    DisposableEffect(Unit) {
+        onDispose { vm.stopScan() }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
-            .padding(vertical = 24.dp),
-
+            .padding(horizontal = 24.dp)
+            .padding(vertical = 64.dp),
         horizontalAlignment = CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(text = "Bluetooth state: $state")
-
-        // Both Bluetooth and Location permissions are granted.
-        // We can now start scanning.
         ScannerView(
-            devices = devices,
-            isScanning = isScanning,
-            onStartScan = {
-                if (hasBlePermissions(context, permissions)) {
-                    if (!isScanning) vm.onScanRequested()
-                    else vm.onStopScanRequested()
-                } else {
+            devices = scanResults, isScanning = isScanning, onStartScan = {
+                // 点击按钮：如果没权限 -> 请求；有权限 -> start/stop toggle
+                if (!hasBlePermissions(context, permissions)) {
+                    // activity 为空时，不要调用 shouldShow...；直接 launch 也可以
                     permissionLauncher.launch(permissions)
+                } else {
+                    if (!isScanning) vm.startScan(OUR_DEVICE_NAME) else vm.stopScan()
                 }
-            },
-            onPeripheralClicked = vm::onPeripheralSelected,
-            onBondRequested = vm::onBondRequested,
-            onRemoveBondRequested = vm::onRemoveBondRequested,
-            onClearCacheRequested = vm::onClearCacheRequested,
+            }, onPeripheralClicked = vm::connect
         )
     }
 }
 
 @Composable
 fun ScannerView(
-    devices: List<Peripheral>,
+    devices: List<ScanDevice>,
     isScanning: Boolean,
     onStartScan: () -> Unit,
     onPeripheralClicked: (Peripheral) -> Unit,
-    onBondRequested: (Peripheral) -> Unit,
-    onRemoveBondRequested: (Peripheral) -> Unit,
-    onClearCacheRequested: (Peripheral) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -177,48 +179,19 @@ fun ScannerView(
             modifier = Modifier.fillMaxSize(),
             devices = devices,
             onItemClick = onPeripheralClicked,
-            onBondRequested = onBondRequested,
-            onRemoveBondRequested = onRemoveBondRequested,
-            onClearCacheRequested = onClearCacheRequested,
             contentPadding = PaddingValues(bottom = 56.dp, top = 16.dp),
         )
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun ScannerScreenPreview() {
-    val scope = rememberCoroutineScope()
-    ScannerView(
-        devices = listOf(
-            PreviewPeripheral(
-                scope = scope,
-                address = "00:11:22:33:44:55",
-                name = "Device 1",
-                state = ConnectionState.Connected,
-            ),
-            PreviewPeripheral(scope, "11:22:33:44:55:66", "Device 2"),
-            PreviewPeripheral(scope, "22:33:44:55:66:77", "Device 3"),
-        ),
-        isScanning = true,
-        onStartScan = {},
-        onPeripheralClicked = {},
-        onBondRequested = {},
-        onRemoveBondRequested = {},
-        onClearCacheRequested = {},
-    )
-}
-
-@Composable
 private fun requiredBlePermissions(): Array<String> {
-    return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         arrayOf(
-            android.Manifest.permission.BLUETOOTH_SCAN,
-            android.Manifest.permission.BLUETOOTH_CONNECT
+            Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT
         )
     } else {
         arrayOf(
-            android.Manifest.permission.ACCESS_FINE_LOCATION
+            Manifest.permission.ACCESS_FINE_LOCATION
         )
     }
 }
