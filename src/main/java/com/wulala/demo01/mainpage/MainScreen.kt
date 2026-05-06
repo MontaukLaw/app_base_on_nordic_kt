@@ -34,6 +34,7 @@ fun MainScreen(
 
     val p by vm.peripheral.collectAsStateWithLifecycle()
     val connectionState by vm.connectionState.collectAsStateWithLifecycle()
+    val uiState by vm.uiState.collectAsStateWithLifecycle()
 
     // ✅ 避免初始状态（Disconnected(null)）就把你踢回去
     var everConnected by rememberSaveable { mutableStateOf(false) }
@@ -58,10 +59,9 @@ fun MainScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        // contentWindowInsets = WindowInsets(0),   // ✅ 关键：不要自动留白
         topBar = {
             TopAppBar(
-                title = { Text(p?.name ?: p?.identifier ?: "Main") },
+                title = { Text((p?.name ?: p?.identifier ?: "Main") + " FPS: ${uiState.fps}, Bytes per sec: ${uiState.bytesPerSec}") },
                 actions = {
                     TextButton(onClick = {
                         vm.disconnect()
@@ -103,7 +103,7 @@ fun MainScreen(
                 .padding(padding)
                 .fillMaxSize()
         ) {
-            composable("wave") { WaveScreen() }
+            composable("wave") { WaveScreen(vm) }
             composable("matrix") { MatrixScreen() }
             composable("settings") { SettingsScreen() }
         }

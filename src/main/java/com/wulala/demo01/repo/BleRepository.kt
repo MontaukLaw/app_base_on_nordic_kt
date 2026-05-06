@@ -93,8 +93,7 @@ class BleRepository @Inject constructor(
      * @param pruneOlderThan 多久没出现就从列表移除（UI 更干净）
      */
     fun startScan(
-        timeout: Duration = Duration.INFINITE, publishIntervalMs: Long = 500L, pruneOlderThan:
-        Duration = 8.seconds, onlyConnectable: Boolean = true, filter: ConjunctionFilterScope.() -> Unit = {}
+        timeout: Duration = Duration.INFINITE, publishIntervalMs: Long = 500L, pruneOlderThan: Duration = 8.seconds, onlyConnectable: Boolean = true, filter: ConjunctionFilterScope.() -> Unit = {}
     ) {
 
         stopScan(clearResults = false)
@@ -293,11 +292,11 @@ class BleRepository @Inject constructor(
                 Timber.w("Frame has no values")
                 return@map FloatArray(0)
             }
-            Timber.i("BLE: ${it.values[0]} ${it.values[1]} ${it.values[2]} ${it.values[3]}")
+            // Timber.i("BLE: ${it.values[0]} ${it.values[1]} ${it.values[2]} ${it.values[3]}")
 
             // ✅ 直接转 float，除以当初乘的值（比如 1000000），避免后续处理都要除
             FloatArray(it.values.size) { idx ->
-                it.values[idx].toFloat() / 1_000_000f
+                it.values[idx].toFloat() // / 1_000_000f
             }
 
             // Timber.i("BLE: got frame with ${it.values.size} values, first=${it.values[0]}")

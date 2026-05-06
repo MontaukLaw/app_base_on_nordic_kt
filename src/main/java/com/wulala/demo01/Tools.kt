@@ -67,10 +67,10 @@ object PressureFrameParser {
             }
         }
 
-//         if (strictLengths) {
-//          require(headerSize == HEADER_SIZE) { "Bad headerSize=$headerSize, expected=$HEADER_SIZE" }
-//          require(payloadLen == PAYLOAD_SIZE) { "Bad payloadLen=$payloadLen, expected=$PAYLOAD_SIZE" }
-//         }
+        // if (strictLengths) {
+        //     require(headerSize == HEADER_SIZE) { "Bad headerSize=$headerSize, expected=$HEADER_SIZE" }
+        //     require(payloadLen == PAYLOAD_SIZE) { "Bad payloadLen=$payloadLen, expected=$PAYLOAD_SIZE" }
+        // }
 
         val payloadBuffer = ByteBuffer
             .wrap(packet, HEADER_SIZE, PAYLOAD_SIZE)

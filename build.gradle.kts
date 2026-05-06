@@ -40,6 +40,6 @@ dependencies {
 
     // Binder SLF4J -> Timber
     implementation(libs.slf4j.timber)
-    implementation(libs.play.services.maps)
+    // implementation(libs.play.services.maps)
     debugImplementation(libs.leakcanary)
 }
